@@ -23,6 +23,12 @@ pipeline installation folder, it builds to another destination folder. You can s
 build property destination with the path to the destination folder or just use the default
 destination, which is the folder **build/pipeline** in the pipeline build folder.
 
+> *Note!* This fork allows you to build the xnat-pipeline-engine locally (in the `./build/pipeline/` folder),
+> preconfigured for the target XNAT, then move it manually or with other means,
+> ie. it was made to work with the XNAT Docker installation ([xnat-docker-compose](https://github.com/NrgXnat/xnat-docker-compose)).
+>
+> If this is your case, use the `gradlew` build methods, described below.
+
 You can build the pipeline engine by three different methods:
 
 1. Call the **setup.sh** or **setup.bat** script, passing the administrator email, mail server,
@@ -38,7 +44,8 @@ Gradle build parameters are passed in the form **-P**_param_=_value_.
 
         ./gradlew -PadminEmail=you@yourlab.org -Pdestination=/pipeline/folder \
                   -PsiteName=YourXNAT -PxnatUrl=http://xnat.yourlab.org \
-                  -PsmtpServer=mail.yourlab.org -PmodulePaths=/path1/to/modules,/path2/to/modules
+                  -PsmtpServer=mail.yourlab.org -PmodulePaths=/path1/to/modules,/path2/to/modules \
+                  -PisForWindows=false
 
 3. Lastly, you can call the **gradlew** or **gradlew.bat** script on its own, with all of the
 values passed on the command line in the previous method now stored in the **gradle.properties**

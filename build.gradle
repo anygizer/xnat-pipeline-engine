@@ -37,11 +37,15 @@ String propertyWithDefault(String name, Object value) {
     hasProperty(name) ? property(name) : value
 }
 
+Boolean boolPropertyWithDefault(String name, Object value) {
+    hasProperty(name) ? property(name).toBoolean() : value
+}
+
 // Marshall all of the variables and properties.
-def isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
+def isWindows = boolPropertyWithDefault("isForWindows", Os.isFamily(Os.FAMILY_WINDOWS))
 
 def source = buildDir.parent
-def destination = file(propertyWithDefault("destination", "${buildFile.parent}/build/pipeline"))
+def destination = "${propertyWithDefault("destination", "${buildFile.parent}/build/pipeline" as Object)}" as String
 def url = "${propertyWithDefault("xnatUrl", "http://localhost:8080").replaceAll("/+\$", "")}" as String
 def email = "${propertyWithDefault("adminEmail", "admin@yourxnat.org")}" as String
 def smtp = "${propertyWithDefault("smtpServer", "localhost")}" as String
@@ -69,7 +73,7 @@ def shellLine = (isWindows ? "@echo off" : "#!/bin/bash") as String
 def tokens = [CONFIG_EXT           : configExt,
               CP_SEP               : classpathSeparator,
               OS_ARG_SYM           : osArgSym,
-              PIPELINE_DIR_PATH    : "${destination}" as String,
+              PIPELINE_DIR_PATH    : destination,
               PLATFORM_CALL        : platformCall,
               PLATFORM_ENV_VAR1    : envVar1,
               PLATFORM_ENV_VAR2    : envVar2,
@@ -253,20 +257,24 @@ task buildArchive(type: Zip) {
 
 task copyDependencies(type: Copy) {
     from configurations.runtime
-    into "${destination}/lib"
+    into "${buildDir}/pipeline/lib"
 }
 
 task copyResources(type: Copy) {
     from resources
-    into destination
+    into "${buildDir}/pipeline"
     exclude ".*/**"
-    filter(FixCrLfFilter)
+    filter(FixCrLfFilter,
+            eol: FixCrLfFilter.CrLf.newInstance(isWindows ? 'crlf' : 'lf'),
+            tab: FixCrLfFilter.AddAsisRemove.newInstance('asis'),
+            eof: FixCrLfFilter.AddAsisRemove.newInstance('remove'),
+            fixlast: true)
     filter(ReplaceTokens, tokens: tokens)
 }
 
 task copyScripts(type: Copy) {
     from scripts
-    into destination
+    into "${buildDir}/pipeline"
     exclude ".*/**"
     fileMode = 0755
     rename { String filename ->
@@ -276,27 +284,36 @@ task copyScripts(type: Copy) {
             filename
         }
     }
-    filter(FixCrLfFilter)
+    filter(FixCrLfFilter,
+            eol: FixCrLfFilter.CrLf.newInstance(isWindows ? 'crlf' : 'lf'),
+            tab: FixCrLfFilter.AddAsisRemove.newInstance('asis'),
+            eof: FixCrLfFilter.AddAsisRemove.newInstance('remove'),
+            fixlast: true)
     filter(ReplaceTokens, tokens: tokens)
 }
 
 task copyBinaries(type: Copy) {
     from binaries
-    into destination
+    into "${buildDir}/pipeline"
     exclude ".*/**"
     fileMode = 0755
 }
 
 task copyLibs(type: Copy) {
     from "${source}/lib"
-    into "${destination}/lib"
+    into "${buildDir}/pipeline/lib"
     exclude ".*/**"
 }
 
 task copyBuildInfo(type: Copy) {
     from "${source}"
-    into "${destination}"
+    into "${buildDir}/pipeline"
     include "${id}.mf"
+    filter(FixCrLfFilter,
+            eol: FixCrLfFilter.CrLf.newInstance(isWindows ? 'crlf' : 'lf'),
+            tab: FixCrLfFilter.AddAsisRemove.newInstance('asis'),
+            eof: FixCrLfFilter.AddAsisRemove.newInstance('remove'),
+            fixlast: true)
 }
 
 task copyAll {
